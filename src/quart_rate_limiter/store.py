@@ -45,10 +45,10 @@ class MemoryStore(RateLimiterStoreABC):
         self._tats: dict[str, datetime] = {}
 
     async def get(self, key: str, default: datetime) -> datetime:
-        return self._tats.get(key, default)
+        pass
 
     async def set(self, key: str, tat: datetime) -> None:
-        self._tats[key] = tat
+        pass
 
     async def before_serving(self) -> None:
         pass

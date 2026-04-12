@@ -20,18 +20,13 @@ class RedisStore(RateLimiterStoreABC):
         self._redis_arguments = (address, kwargs)
 
     async def before_serving(self) -> None:
-        self._redis = await aioredis.from_url(self._redis_arguments[0], **self._redis_arguments[1])
+        pass
 
     async def get(self, key: str, default: datetime) -> datetime:
-        result = await self._redis.get(key)
-        if result is None:
-            return default
-        else:
-            return datetime.fromtimestamp(float(result))
+        pass
 
     async def set(self, key: str, tat: datetime) -> None:
-        await self._redis.set(key, tat.timestamp())
+        pass
 
     async def after_serving(self) -> None:
-        await self._redis.close()
-        self._redis = None
+        pass

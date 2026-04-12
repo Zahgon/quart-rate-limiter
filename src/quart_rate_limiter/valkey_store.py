@@ -20,18 +20,13 @@ class ValkeyStore(RateLimiterStoreABC):
         self._valkey_arguments = (address, kwargs)
 
     async def before_serving(self) -> None:
-        self._valkey = valkey.from_url(self._valkey_arguments[0], **self._valkey_arguments[1])
+        pass
 
     async def get(self, key: str, default: datetime) -> datetime:
-        result = await self._valkey.get(key)
-        if result is None:
-            return default
-        else:
-            return datetime.fromtimestamp(float(result))
+        pass
 
     async def set(self, key: str, tat: datetime) -> None:
-        await self._valkey.set(key, tat.timestamp())
+        pass
 
     async def after_serving(self) -> None:
-        await self._valkey.aclose()
-        self._valkey = None
+        pass

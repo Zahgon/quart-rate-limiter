@@ -32,9 +32,7 @@ class RateLimitExceeded(TooManyRequests):
         self.retry_after = retry_after
 
     def get_headers(self, *args: Any) -> list[tuple[str, str]]:
-        headers = super().get_headers(*args)
-        headers.append(("Retry-After", str(self.retry_after)))
-        return headers
+        pass
 
 
 @dataclass
@@ -46,11 +44,11 @@ class RateLimit:
 
     @property
     def inverse(self) -> float:
-        return self.period.total_seconds() / self.count
+        pass
 
     @property
     def key(self) -> str:
-        return f"{self.count}-{self.period.total_seconds()}"
+        pass
 
 
 T = TypeVar("T", bound=RouteCallable | WebsocketCallable)
@@ -94,20 +92,7 @@ def rate_limit(
             return request.remote_addr
 
     """
-    if limit is not None or period is not None:
-        if limits is not None:
-            raise ValueError("Please use either limit & period or limits")
-        limits = [RateLimit(limit, period, key_function, skip_function)]
-    if limits is None:
-        raise ValueError("No Rate Limit(s) set")
-
-    def decorator(func: T) -> T:
-        rate_limits = getattr(func, QUART_RATE_LIMITER_LIMITS_ATTRIBUTE, [])
-        rate_limits.extend(limits)
-        setattr(func, QUART_RATE_LIMITER_LIMITS_ATTRIBUTE, rate_limits)
-        return func
-
-    return decorator
+    pass
 
 
 def rate_exempt(func: T) -> T:
@@ -125,8 +110,7 @@ def rate_exempt(func: T) -> T:
         async def index():
             ...
     """
-    setattr(func, QUART_RATE_LIMITER_EXEMPT_ATTRIBUTE, True)
-    return func
+    pass
 
 
 U = TypeVar("U", bound=Blueprint)
@@ -168,21 +152,11 @@ def limit_blueprint(
             return request.remote_addr
 
     """
-    if limit is not None or period is not None:
-        if limits is not None:
-            raise ValueError("Please use either limit & period or limits")
-        limits = [RateLimit(limit, period, key_function, skip_function)]
-    if limits is None:
-        raise ValueError("No Rate Limit(s) set")
-
-    rate_limits = getattr(blueprint, QUART_RATE_LIMITER_LIMITS_ATTRIBUTE, [])
-    rate_limits.extend(limits)
-    setattr(blueprint, QUART_RATE_LIMITER_LIMITS_ATTRIBUTE, rate_limits)
-    return blueprint
+    pass
 
 
 async def remote_addr_key() -> str:
-    return request.access_route[0]
+    pass
 
 
 class RateLimiter:
@@ -248,107 +222,33 @@ class RateLimiter:
     def _get_limits_for_view_function(
         self, view_func: Callable, blueprint: Blueprint | None
     ) -> list[RateLimit]:
-        if getattr(view_func, QUART_RATE_LIMITER_EXEMPT_ATTRIBUTE, False):
-            return []
-        else:
-            view_limits = getattr(view_func, QUART_RATE_LIMITER_LIMITS_ATTRIBUTE, [])
-            blueprint_limits = getattr(blueprint, QUART_RATE_LIMITER_LIMITS_ATTRIBUTE, [])
-            return view_limits + blueprint_limits + self._default_rate_limits
+        pass
 
     def init_app(self, app: Quart, enabled: bool = True) -> None:
-        app.before_request(self._before_request)
-        app.after_request(self._after_request)
-        app.before_serving(self._before_serving)
-        app.after_serving(self._after_serving)
-        app.config.setdefault("QUART_RATE_LIMITER_ENABLED", enabled)
+        pass
 
     async def _before_serving(self) -> None:
-        await self.store.before_serving()
+        pass
 
     async def _after_serving(self) -> None:
-        await self.store.after_serving()
+        pass
 
     async def _before_request(self) -> None:
-        if not current_app.config["QUART_RATE_LIMITER_ENABLED"]:
-            return
-
-        endpoint = request.endpoint
-        view_func = current_app.view_functions.get(endpoint)
-        blueprint = current_app.blueprints.get(request.blueprint)
-        if view_func is not None:
-            rate_limits = [
-                limit
-                for limit in self._get_limits_for_view_function(view_func, blueprint)
-                if not await self._should_skip(limit)
-            ]
-            await self._raise_on_rejection(endpoint, rate_limits)
-            await self._update_limits(endpoint, rate_limits)
+        pass
 
     async def _raise_on_rejection(self, endpoint: str, rate_limits: list[RateLimit]) -> None:
-        now = datetime.now(UTC)
-        for rate_limit in rate_limits:
-            key = await self._create_key(endpoint, rate_limit)
-            # This is the GCRA rate limiting system and tat stands for
-            # the theoretical arrival time.
-            stored = await self.store.get(key, now)
-            if stored.tzinfo is None:
-                stored = stored.astimezone(UTC)
-            tat = max(stored, now)
-            separation = (tat - now).total_seconds()
-            max_interval = rate_limit.period.total_seconds() - rate_limit.inverse
-            if separation > max_interval:
-                retry_after = ((tat - timedelta(seconds=max_interval)) - now).total_seconds()
-                raise RateLimitExceeded(int(ceil(retry_after)))
+        pass
 
     async def _update_limits(self, endpoint: str, rate_limits: list[RateLimit]) -> None:
         # Update the tats for all the rate limits. This must only
         # occur if no limit rejects the request.
-        now = datetime.now(UTC)
-        for rate_limit in rate_limits:
-            key = await self._create_key(endpoint, rate_limit)
-            stored = await self.store.get(key, now)
-            if stored.tzinfo is None:
-                stored = stored.astimezone(UTC)
-            tat = max(stored, now)
-            new_tat = max(tat, now) + timedelta(seconds=rate_limit.inverse)
-            await self.store.set(key, new_tat)
+        pass
 
     async def _after_request(self, response: Response) -> Response:
-        if not current_app.config["QUART_RATE_LIMITER_ENABLED"]:
-            return response
-
-        endpoint = request.endpoint
-        view_func = current_app.view_functions.get(endpoint)
-        blueprint = current_app.blueprints.get(request.blueprint)
-        rate_limits = self._get_limits_for_view_function(view_func, blueprint)
-        try:
-            min_limit = min(rate_limits, key=lambda rate_limit: rate_limit.period.total_seconds())
-        except ValueError:
-            pass  # No rate limits
-        else:
-            key = await self._create_key(endpoint, min_limit)
-            now = datetime.now(UTC)
-            stored = await self.store.get(key, now)
-            if stored.tzinfo is None:
-                stored = stored.astimezone(UTC)
-            tat = max(stored, now)
-            separation = (tat - now).total_seconds()
-            remaining = int((min_limit.period.total_seconds() - separation) / min_limit.inverse)
-            response.headers["RateLimit-Limit"] = str(min_limit.count)
-            response.headers["RateLimit-Remaining"] = str(remaining)
-            response.headers["RateLimit-Reset"] = str(int(ceil(separation)))
-
-        return response
+        pass
 
     async def _create_key(self, endpoint: str, rate_limit: RateLimit) -> str:
-        key_function = rate_limit.key_function or self.key_function
-        key = await key_function()
-        app_name = current_app.import_name
-        return f"{app_name}-{endpoint}-{rate_limit.key}-{key}"
+        pass
 
     async def _should_skip(self, rate_limit: RateLimit) -> bool:
-        skip_function = rate_limit.skip_function or self.skip_function
-        if skip_function is None:
-            return False
-        else:
-            return await skip_function()
+        pass
